@@ -28,7 +28,7 @@ comes from the `std.Io` module.
 
 If you have some experience in any high-level programming language, you have certainly used
 some input or output functionality before. In other words, you certainly have
-been in a situation where you needed to sent some output to the user, or, to receive an input
+been in a situation where you needed to send some output to the user, or, to receive an input
 from the user of your program.
 
 For example, in Python we can receive some input from the user by using the `input()` built-in
@@ -160,7 +160,7 @@ _ = io;
 Therefore, since Zig 0.16, you will find different functions that perform some IO operation across the Zig Standard Library
 that takes an argument named `io` of type `std.Io`. A big example of that is the `reader()` method that you find in `std.Io.File`. This method is responsible
 for creating the `Reader` object through which you can read data from the file represented by the `std.Io.File` object.
-And this method have now, an `io` argument, in which you should provide the "IO backend implementation" that you
+And this method now has an `io` argument, in which you should provide the "IO backend implementation" that you
 want to use while reading the file.
 
 In the example below, I'm demonstrating the use of this `io` argument by opening a file in my computer and reading it. Notice that I provide an
@@ -264,7 +264,6 @@ pub fn main(init: std.process.Init) !void {
 }
 ```
 
-    try stdout.flush();
 
 ## Introducing file descriptors {#sec-file-descriptor}
 
@@ -377,7 +376,7 @@ You should also notice that, like we did with the `writer()` method, we also nee
 object as input to the `reader()` method, when instantiating our `Reader` object. The reasons are exactly the same.
 This input buffer transforms the IO operations performed by the `Reader` object into "buffered IO operations".
 
-If you execute this program, you will notice that it stops the execution, ands start to wait indefinitely
+If you execute this program, you will notice that it stops the execution, and starts to wait indefinitely
 for some input from the user. In other words, you need to type your name into the terminal, and then, you press Enter to
 send your name to `stdin`. After you send your name to `stdin`, the program reads this input, and continues with the execution,
 by printing the given name to `stdout`. In the example below, I typed my name (Pedro) into the terminal, and then, pressed Enter.
@@ -516,7 +515,7 @@ Basically, when we are in a buffered IO scenario, and we try to write data into 
 to the `Writer` object as input, and this data in the IO buffer will only be effectively written into the "something" when we "commit" it.
 We "commit" the bytes written into the IO buffer to our target output by "flushing our IO buffer".
 
-So, when we flush our IO buffer, we are effectively commiting the chunk of data that is present in the IO buffer to
+So, when we flush our IO buffer, we are effectively committing the chunk of data that is present in the IO buffer to
 be written into the IO resource that is described by our file descriptor object. If we don't flush our IO buffer, then,
 this data never leaves the IO buffer (i.e. it never reaches the IO resource). Therefore, when you forget to flush your IO
 resource, what happens, most of the times, is that you don't get any kind of output in your IO resource.
@@ -526,7 +525,7 @@ don't get any kind of output written into the terminal. The program seems to run
 visual output in the terminal to confirm it, and you get really frustrated and confused.
 
 Thus, if you are writing data in Zig, don't forget to flush your IO buffers by calling the `flush()` method of your `Writer` object.
-This will make sure that the bytes/data that you are writing are effectivelly written into the IO resource described by your file descriptor
+This will make sure that the bytes/data that you are writing are effectively written into the IO resource described by your file descriptor
 object.
 
 ::: {.callout-important}
@@ -672,7 +671,7 @@ a buffered writer object to write a new line of text to the file.
 
 Now, a quick note, when we create a file descriptor object in C, by using a C function like `fopen()`, we must always close the file
 at the end of our program, or, as soon as we complete all operations that we wanted to perform
-on the file. In Zig, this is no different. So everytime we create a new file, this file remains
+on the file. In Zig, this is no different. So every time we create a new file, this file remains
 "open", waiting for some operation to be performed. As soon as we are done with it, we always have
 to close this file, to free the resources associated with it.
 In Zig, we do this by calling the method `close()` from the file descriptor object.
@@ -779,12 +778,20 @@ There are three IO modes, or, three values that you can provide to this flag, wh
 
 These modes are similar to the modes that you provide to the `mode` argument of the
 `open()` Python built-in function[^py-open], or, the `mode` argument of the
-`fopen()` C function[^c-open].
+`fopen()` C function[^c-open]. If you open a file with a mode that does not allow the specific operation
+that you want to perform on this file, you normally get a `AccessDenied` error from the OS as a result.
 
-In the code example below, we are opening the `foo.txt` text file with a `write_only` mode,
+Now, for Windows users is worth noting that, most of the times, when you try to write/append data to a file,
+you will most likely to use a `read_write` mode instead of a `write_only` mode. This happens because the Windows OS
+also need a read permission over a file to be able to write data to it. Be careful with this. On Linux-like systems this usually does not happen,
+and therefore, a `write_only` mode is usually sufficient if you just want to write data to a file, and nothing else.
+
+In the code example below, we are opening the `foo.txt` text file with a `read_write` mode[^windows-write],
 and appending a new line of text to the end of the file. To do that, we use the `writePositionalAll()`
 method from the file descriptor object. This method allows you to write a slice of bytes/data into
 a specific position in the file.
+
+[^windows-write]: This makes this code example compatible not only with Linux, but also, with Windows, because of the reasons that I just explained in the previous paragraph. If you are a Linux-only user, you could use a `write_only` mode instead of a `read_write` mode, and the code would still work.
 
 Since we want to append data to the end of the file, I use the `length()` method of the file descriptor
 object to calculate the length of the file (i.e. how many bytes the file contains), and then, I pass the result
@@ -803,7 +810,7 @@ at the end of the file.
 const std = @import("std");
 pub fn main(init: std.process.Init) !void {
     const cwd = std.Io.Dir.cwd();
-    const file = try cwd.openFile(init.io, "foo.txt", .{ .mode = .write_only });
+    const file = try cwd.openFile(init.io, "foo.txt", .{ .mode = .read_write });
     defer file.close(init.io);
 
     const length = try file.length(init.io);
